@@ -33,11 +33,11 @@ namespace WebSocketServer
                 {
                     while (!stream.DataAvailable)
                     {
-                        Thread.Sleep(1);
+                        await Task.Yield();
                         continue;
                     }
 
-                    var bytes = new Byte[client.Available];
+                    var bytes = new byte[client.Available];
 
                     await stream.ReadAsync(bytes, 0, bytes.Length).ContinueWith(async (count) =>
                     {
@@ -75,8 +75,8 @@ namespace WebSocketServer
                                 return;
                             }
                             var raw = bytes;
-                            var key = new Byte[4] { bytes[2], bytes[3], bytes[4], bytes[5], };
-                            var decoded = new Byte[length];
+                            var key = new byte[4] { bytes[2], bytes[3], bytes[4], bytes[5], };
+                            var decoded = new byte[length];
 
                             for (int i = 0; i < decoded.Length; ++i)
                             {
