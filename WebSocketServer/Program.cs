@@ -13,96 +13,98 @@ namespace WebSocketServer
 {
     class Program
     {
-        static async void Run()
+        static void Run()
         {
-            var server = new TcpListener(IPAddress.Parse("127.0.0.1"), 80);
-
+            var server = new Server(IPAddress.Parse("127.0.0.1"), 80);
             server.Start();
-            Console.WriteLine("Server has started on 127.0.0.1:80.{0}Waiting for a connection...", Environment.NewLine);
+            server.Run();
 
-            while (true)
-            {
-                var client = await server.AcceptTcpClientAsync().ConfigureAwait(false);
+            //var server = new TcpListener(IPAddress.Parse("127.0.0.1"), 80);
 
-                Console.WriteLine("A client connected.");
+            //server.Start();
+            //Console.WriteLine("Server has started on 127.0.0.1:80.{0}Waiting for a connection...", Environment.NewLine);
 
-                var stream = client.GetStream();
+            //while (true)
+            //{
+            //    var client = await server.AcceptTcpClientAsync().ConfigureAwait(false);
 
-                //enter to an infinite cycle to be able to handle every change in stream
-                while (true)
-                {
-                    while (!stream.DataAvailable)
-                    {
-                        await Task.Yield();
-                        continue;
-                    }
+            //    Console.WriteLine("A client connected.");
 
-                    var bytes = new byte[client.Available];
+            //    var stream = client.GetStream();
 
-                    await stream.ReadAsync(bytes, 0, bytes.Length).ContinueWith(async (count) =>
-                    {
-                        var data = Encoding.UTF8.GetString(bytes);
-                        if (new Regex("^GET").IsMatch(data))
-                        {
-                            var sec_websocket_key = new Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups[1].Value.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                            var response = Encoding.UTF8.GetBytes(
-                                "HTTP/1.1 101 Switching Protocols" + Environment.NewLine +
-                                "Connection: Upgrade" + Environment.NewLine +
-                                "Upgrade: websocket" + Environment.NewLine +
-                                "Sec-WebSocket-Accept: " +
-                                Convert.ToBase64String(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(sec_websocket_key))) + Environment.NewLine + Environment.NewLine);
+            //    //enter to an infinite cycle to be able to handle every change in stream
+            //    while (true)
+            //    {
+            //        while (!stream.DataAvailable)
+            //        {
+            //            await Task.Yield();
+            //            continue;
+            //        }
 
-                            await stream.WriteAsync(response, 0, response.Length).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            // hardcode, first byte must be 129 to indicate this is a text message.
-                            if (bytes[0] != 129)
-                            {
-                                return;
-                            }
-                            // If the second byte minus 128 is between 0 and 125, this is the length of message.
-                            // If it is 126, the following 2 bytes (16-bit unsigned integer), 
-                            // if 127, the following 8 bytes (64-bit unsigned integer) are the length.
-                            // hard code, this must be a short text message, so must be between 0 and 125.
-                            if (bytes[1] < 128)
-                            {
-                                return;
-                            }
-                            var length = bytes[1] - 128;
-                            if (length > 125)
-                            {
-                                return;
-                            }
-                            var raw = bytes;
-                            var key = new byte[4] { bytes[2], bytes[3], bytes[4], bytes[5], };
-                            var decoded = new byte[length];
+            //        var bytes = new byte[client.Available];
 
-                            for (int i = 0; i < decoded.Length; ++i)
-                            {
-                                decoded[i] = (byte)(bytes[i + 2 + key.Length] ^ key[i % 4]);
-                            }
+            //        await stream.ReadAsync(bytes, 0, bytes.Length).ContinueWith(async (count) =>
+            //        {
+            //            var data = Encoding.UTF8.GetString(bytes);
+            //            if (new Regex("^GET").IsMatch(data))
+            //            {
+            //                var sec_websocket_key = new Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups[1].Value.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+            //                var response = Encoding.UTF8.GetBytes(
+            //                    "HTTP/1.1 101 Switching Protocols" + Environment.NewLine +
+            //                    "Connection: Upgrade" + Environment.NewLine +
+            //                    "Upgrade: websocket" + Environment.NewLine +
+            //                    "Sec-WebSocket-Accept: " +
+            //                    Convert.ToBase64String(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(sec_websocket_key))) + Environment.NewLine + Environment.NewLine);
 
-                            var text1 = Encoding.UTF8.GetString(decoded);
-                            Console.WriteLine("receive {0}", text1);
-                            // always response "go!"
-                            var encoded = Encoding.UTF8.GetBytes("go!");
-                            var response = new byte[2 + key.Length + encoded.Length];
-                            response[0] = 129;
-                            response[1] = (byte)(encoded.Length + 128);
-                            response[2] = key[0];
-                            response[3] = key[1];
-                            response[4] = key[2];
-                            response[5] = key[3];
-                            for (int i = 0; i < encoded.Length; ++i)
-                            {
-                                response[6 + i] = (byte)(encoded[i] ^ key[i % 4]);
-                            }
-                            await stream.WriteAsync(response, 0, response.Length).ConfigureAwait(false);
-                        }
-                    }).ConfigureAwait(false);
-                }
-            }
+            //                await stream.WriteAsync(response, 0, response.Length).ConfigureAwait(false);
+            //            }
+            //            else
+            //            {
+            //                // hardcode, first byte must be 129 to indicate this is a text message.
+            //                if (bytes[0] != 129)
+            //                {
+            //                    return;
+            //                }
+            //                // If the second byte minus 128 is between 0 and 125, this is the length of message.
+            //                // If it is 126, the following 2 bytes (16-bit unsigned integer), 
+            //                // if 127, the following 8 bytes (64-bit unsigned integer) are the length.
+            //                // hard code, this must be a short text message, so must be between 0 and 125.
+            //                if (bytes[1] < 128)
+            //                {
+            //                    return;
+            //                }
+            //                var length = bytes[1] - 128;
+            //                if (length > 125)
+            //                {
+            //                    return;
+            //                }
+            //                var raw = bytes;
+            //                var key = new byte[4] { bytes[2], bytes[3], bytes[4], bytes[5], };
+            //                var decoded = new byte[length];
+
+            //                for (int i = 0; i < decoded.Length; ++i)
+            //                {
+            //                    decoded[i] = (byte)(bytes[i + 2 + key.Length] ^ key[i % 4]);
+            //                }
+
+            //                var text1 = Encoding.UTF8.GetString(decoded);
+            //                Console.WriteLine("receive {0}", text1);
+            //                // always response "go!"
+            //                var encoded = Encoding.UTF8.GetBytes("go!");
+            //                var response = new byte[2 + encoded.Length];
+            //                response[0] = 129;
+            //                response[1] = (byte)(encoded.Length);
+            //                for (int i = 0; i < encoded.Length; ++i)
+            //                {
+            //                    response[2 + i] = (byte)(encoded[i]);
+            //                }
+            //                //var binary = response.Select(x => Convert.ToString(x, 2)).ToArray();
+            //                //System.Diagnostics.Debug.WriteLine(string.Join(" ", binary));
+            //                await stream.WriteAsync(response, 0, response.Length).ConfigureAwait(false);
+            //            }
+            //        }).ConfigureAwait(false);
+            //    }
+            //}
         }
         static void Main()
         {
